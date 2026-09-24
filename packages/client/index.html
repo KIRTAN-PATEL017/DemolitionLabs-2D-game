@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DemolitionLabs — Real-Time Multiplayer Bombing Game</title>
+    <meta name="description" content="DemolitionLabs: a high-concurrency real-time multiplayer grid-bombing game. Place bombs, destroy obstacles, collect power-ups, and outlast your opponents." />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        background: #0d0d1a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        overflow: hidden;
+      }
+
+      #game-container {
+        position: relative;
+        border: 2px solid #e17055;
+        border-radius: 4px;
+        box-shadow:
+          0 0 40px rgba(225, 112, 85, 0.3),
+          0 0 80px rgba(225, 112, 85, 0.1);
+      }
+
+      /* Phaser canvas sits inside #game-container */
+      canvas {
+        display: block;
+      }
+
+      /* Lobby DOM overlay styles */
+      .lobby-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      .lobby-input {
+        pointer-events: all;
+        background: rgba(255,255,255,0.08);
+        border: 2px solid rgba(225,112,85,0.6);
+        border-radius: 8px;
+        color: #fff;
+        font-size: 18px;
+        padding: 12px 20px;
+        text-align: center;
+        outline: none;
+        width: 280px;
+        transition: border-color 0.2s;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+
+      .lobby-input::placeholder { color: rgba(255,255,255,0.3); text-transform: none; letter-spacing: normal; }
+      .lobby-input:focus { border-color: #e17055; box-shadow: 0 0 12px rgba(225,112,85,0.4); }
+
+      .lobby-btn {
+        pointer-events: all;
+        background: #e17055;
+        border: none;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        padding: 14px 40px;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        box-shadow: 0 4px 20px rgba(225,112,85,0.4);
+        width: 280px;
+      }
+
+      .lobby-btn:hover  { background: #d4614a; box-shadow: 0 6px 28px rgba(225,112,85,0.6); }
+      .lobby-btn:active { transform: scale(0.97); }
+      .lobby-btn:disabled { background: #555; cursor: not-allowed; box-shadow: none; }
+
+      .lobby-status {
+        color: rgba(255,255,255,0.6);
+        font-size: 13px;
+        letter-spacing: 1px;
+        min-height: 20px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "@demolition-labs/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DemolitionLabs authoritative game server — uWebSockets.js + 20 Hz tick loop",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --loader ts-node/esm src/server.ts",
+    "start": "node dist/server.js",
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@demolition-labs/engine": "workspace:*",
+    "kafkajs": "^2.2.4",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.48.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "vitest": "^2.0.0"
+  }
+}

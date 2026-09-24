@@ -1,0 +1,22 @@
+{
+  "name": "@demolition-labs/client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DemolitionLabs browser client — Vite + Phaser.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@demolition-labs/engine": "workspace:*",
+    "phaser": "^3.87.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@demolition-labs/worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DemolitionLabs match log persistence worker",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "@aws-sdk/client-s3": "^3.500.0"
+  }
+}
