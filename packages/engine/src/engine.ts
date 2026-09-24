@@ -162,7 +162,7 @@ export class GameEngine {
     this.state.tick++;
 
     const newBombs: BombState[] = [];
-    const explodedBombPositions: Vec2[] = [];
+    const explodedBombPositions: { origin: Vec2; cells: Vec2[] }[] = [];
     const allCellChanges: CellChange[] = [];
     const allSpawnedPowerups: PowerupState[] = [];
     const allCollectedPowerups: Vec2[] = [];
@@ -241,13 +241,13 @@ export class GameEngine {
       if (processedPositions.has(posKey)) continue;
       processedPositions.add(posKey);
 
-      explodedBombPositions.push(bomb.pos);
-
       // Refund the owner's active bomb count
       const owner = this.state.players.get(bomb.ownerId);
       if (owner) owner.activeBombs = Math.max(0, owner.activeBombs - 1);
 
       const result = applyExplosion(this.state, bomb);
+      
+      explodedBombPositions.push({ origin: bomb.pos, cells: Array.from(result.blastCells) });
 
       allCellChanges.push(...result.cellChanges);
       allSpawnedPowerups.push(...result.spawnedPowerups);

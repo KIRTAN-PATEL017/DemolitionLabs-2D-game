@@ -7,6 +7,7 @@ import { PlayerRenderer } from "../renderer/PlayerRenderer.js";
 import { BombRenderer } from "../renderer/BombRenderer.js";
 import { PowerupRenderer } from "../renderer/PowerupRenderer.js";
 import { ExplosionRenderer } from "../renderer/ExplosionRenderer.js";
+import { Interpolator } from "../prediction/Interpolator.js";
 import type { MatchLog } from "../../../server/src/EventLogger.js";
 
 export class ReplayScene extends Phaser.Scene {
@@ -18,6 +19,7 @@ export class ReplayScene extends Phaser.Scene {
   private bombRenderer!: BombRenderer;
   private powerupRenderer!: PowerupRenderer;
   private explosionRenderer!: ExplosionRenderer;
+  private interpolator!: Interpolator;
 
   private statusText!: Phaser.GameObjects.Text;
   private isPlaying = false;
@@ -38,15 +40,15 @@ export class ReplayScene extends Phaser.Scene {
     this.statusText.setText("Loading Replay...");
 
     try {
-      // Fetch the log from our public MinIO bucket
-      const res = await fetch(`http://localhost:9000/demolition-replays/${this.matchId}.json`);
+      // Fetch the log via the Vite proxy to bypass CORS
+      const res = await fetch(`/demolition-replays/${this.matchId}.json`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       this.log = await res.json() as MatchLog;
       this._initPlayback();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      this.statusText.setText(`Failed to load replay ${this.matchId}`);
+      this.statusText.setText(`Failed to load replay: ${err.message}`);
     }
   }
 
@@ -75,12 +77,8 @@ export class ReplayScene extends Phaser.Scene {
   }
 
   private _initPlayback(): void {
-    this.gridRenderer = new GridRenderer(this);
-    this.playerRenderer = new PlayerRenderer(this);
-    this.bombRenderer = new BombRenderer(this);
-    this.powerupRenderer = new PowerupRenderer(this);
-    this.explosionRenderer = new ExplosionRenderer(this);
-
+    this.interpolator = new Interpolator();
+    
     this.engine = new GameEngine({
       roomId: this.log.roomId,
       seed: this.log.seed,
@@ -96,11 +94,11 @@ export class ReplayScene extends Phaser.Scene {
     
     this.engine.startMatch();
 
-    this.gridRenderer.initGrid(
-      this.engine.state.grid,
-      this.engine.state.mapWidth,
-      this.engine.state.mapHeight
-    );
+    this.gridRenderer = new GridRenderer(this, this.engine.state.grid, 13, 11);
+    this.playerRenderer = new PlayerRenderer(this);
+    this.bombRenderer = new BombRenderer(this);
+    this.powerupRenderer = new PowerupRenderer(this);
+    this.explosionRenderer = new ExplosionRenderer(this);
     this.playerRenderer.syncPlayers(Array.from(this.engine.state.players.values()), "");
 
     this.isPlaying = true;
@@ -109,66 +107,80 @@ export class ReplayScene extends Phaser.Scene {
     this.statusText.setText(`Playing: ${this.matchId}`);
   }
 
-  update(time: number, deltaMs: number): void {
-    if (!this.isPlaying) return;
+  override update(time: number, deltaMs: number): void {
+    if (!this.isPlaying || !this.engine) return;
 
-    // Playback at standard 20Hz (50ms per tick)
-    if (time - this.lastUpdateMs >= 50) {
-      this.lastUpdateMs = time;
+    try {
+      // Run engine ticks to catch up to real time
+      while (time - this.lastUpdateMs >= 50) {
+        this.lastUpdateMs += 50;
 
-      if (this.engine.isFinished()) {
-        this.isPlaying = false;
-        this.statusText.setText(`Replay Finished. Winner: ${this.engine.state.winnerId ?? 'Draw'}`);
-        return;
-      }
-
-      // 1. Feed inputs for this tick
-      const logTick = this.log.ticks.find(t => t.tick === this.playbackTick);
-      if (logTick) {
-        for (const [playerId, input] of logTick.inputs) {
-          this.engine.processInput(playerId, input);
+        if (this.engine.isFinished()) {
+          this.isPlaying = false;
+          this.statusText.setText(`Replay Finished. Winner: ${this.engine.state.winnerId ?? 'Draw'}`);
+          return;
         }
+
+        // 1. Feed inputs for this tick
+        const logTick = this.log.ticks.find(t => t.tick === this.playbackTick);
+        if (logTick) {
+          for (const [playerId, input] of logTick.inputs) {
+            this.engine.processInput(playerId, input);
+          }
+        }
+
+        // 2. Advance engine state
+        const delta: GameStateDelta = this.engine.tick();
+        this.playbackTick++;
+
+        // 3. Process delta for renderers
+        this._processDelta(delta);
       }
 
-      // 2. Advance engine state
-      const delta: GameStateDelta = this.engine.tick();
-      this.playbackTick++;
-
-      // 3. Render
-      this._renderFrame(delta, time);
+      // Smooth render current visual state
+      this._renderFrame(deltaMs);
+    } catch (err: any) {
+      this.isPlaying = false;
+      this.statusText.setText(`Replay crashed: ${err.message}`);
+      console.error(err);
     }
-
-    this.bombRenderer.draw();
-    this.explosionRenderer.draw(time);
   }
 
-  private _renderFrame(delta: GameStateDelta, now: number): void {
-    // We can just rely on the engine.state since we are local!
+  private _processDelta(delta: GameStateDelta): void {
     const state = this.engine.state;
     
-    // Grid changes
-    for (const change of delta.cellChanges) {
-      this.gridRenderer.updateCell(change.x, change.y, change.value);
-    }
+    this.gridRenderer.applyChanges(delta.cellChanges);
     
-    // Player syncing (positions are immediate, no interpolator needed for replays!)
-    this.playerRenderer.syncPlayers(Array.from(state.players.values()), "");
+    // Push targets to interpolator
     for (const player of state.players.values()) {
-      this.playerRenderer.updatePlayer(
-        player.id,
-        player.pos.x,
-        player.pos.y,
-        player.alive,
-        player.spectator,
-        false
-      );
+      this.interpolator.pushServerState(player.id, player.pos);
     }
 
     this.powerupRenderer.syncPowerups(state.powerups);
     this.bombRenderer.updateBombs(state.bombs);
     
     if (delta.explodedBombs.length > 0) {
-      this.explosionRenderer.triggerExplosions(delta.explodedBombs);
+      this.explosionRenderer.triggerExplosions(delta.explodedBombs as any);
     }
+  }
+
+  private _renderFrame(deltaMs: number): void {
+    const state = this.engine.state;
+    
+    this.playerRenderer.syncPlayers(Array.from(state.players.values()), "");
+    for (const player of state.players.values()) {
+      const vPos = this.interpolator.updateAndGetVisualPos(player.id, deltaMs, player.speed);
+      this.playerRenderer.updatePlayer(
+        player.id,
+        vPos.x,
+        vPos.y,
+        player.alive,
+        player.spectator,
+        false
+      );
+    }
+
+    this.bombRenderer.draw();
+    this.explosionRenderer.draw(Date.now());
   }
 }

@@ -25,18 +25,10 @@ export class ExplosionRenderer {
   }
 
   /** Call when a TICK delta contains explodedBombs positions. */
-  triggerExplosions(blastPositions: ReadonlyArray<Vec2>): void {
+  triggerExplosions(explosions: ReadonlyArray<{ origin: Vec2; cells: Vec2[] }>): void {
     const now = Date.now();
-    for (const pos of blastPositions) {
-      // Add the origin and a 1-cell cross pattern
-      const cells: Vec2[] = [
-        pos,
-        { x: pos.x, y: pos.y - 1 },
-        { x: pos.x, y: pos.y + 1 },
-        { x: pos.x - 1, y: pos.y },
-        { x: pos.x + 1, y: pos.y },
-      ];
-      for (const p of cells) {
+    for (const explosion of explosions) {
+      for (const p of explosion.cells) {
         this.flashes.push({ pos: p, startMs: now });
       }
     }

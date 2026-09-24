@@ -226,6 +226,7 @@ export function applyExplosion(
     spawnedPowerups,
     chainTriggeredBombPositions,
     cellChanges,
+    blastCells: allAffectedPositions.map(p => p.pos),
   };
 }
 

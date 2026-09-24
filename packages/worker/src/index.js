@@ -63,6 +63,18 @@ async function run() {
   await consumer.connect();
   console.log("[Kafka] Consumer connected");
 
+  // Ensure topic exists to avoid UNKNOWN_TOPIC_OR_PARTITION crash
+  const admin = kafka.admin();
+  await admin.connect();
+  const topics = await admin.listTopics();
+  if (!topics.includes("match.logs")) {
+    console.log("[Kafka] Creating topic 'match.logs'...");
+    await admin.createTopics({
+      topics: [{ topic: "match.logs", numPartitions: 1 }]
+    });
+  }
+  await admin.disconnect();
+
   await consumer.subscribe({ topic: "match.logs", fromBeginning: true });
 
   await consumer.run({
@@ -74,7 +86,7 @@ async function run() {
 
       console.log(`[Worker] Received match log for room: ${roomId} (${payload.length} bytes)`);
 
-      const filename = `${roomId}-${Date.now()}.json`;
+      const filename = `${roomId}.json`;
 
       try {
         await s3.send(new PutObjectCommand({

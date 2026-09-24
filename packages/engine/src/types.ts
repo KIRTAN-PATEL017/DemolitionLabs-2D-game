@@ -166,8 +166,8 @@ export interface GameStateDelta {
   readonly playerUpdates: ReadonlyArray<Readonly<PlayerState>>;
   /** New bombs placed this tick. */
   readonly newBombs: ReadonlyArray<Readonly<BombState>>;
-  /** Bombs that detonated this tick (by position). */
-  readonly explodedBombs: ReadonlyArray<Vec2>;
+  /** Bombs that detonated this tick, including all cells hit by the blast. */
+  readonly explodedBombs: ReadonlyArray<{ origin: Vec2; cells: Vec2[] }>;
   /** Grid cells whose values changed (box destroyed, power-up collected, etc.). */
   readonly cellChanges: ReadonlyArray<CellChange>;
   /** Power-ups that appeared this tick (from destroyed boxes). */
@@ -217,4 +217,5 @@ export interface ExplosionResult {
   /** Positions of bombs that were caught in the blast and should chain-detonate. */
   readonly chainTriggeredBombPositions: ReadonlyArray<Vec2>;
   readonly cellChanges: ReadonlyArray<CellChange>;
+  readonly blastCells: ReadonlyArray<Vec2>;
 }
