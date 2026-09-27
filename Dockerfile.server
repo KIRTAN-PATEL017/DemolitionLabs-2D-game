@@ -27,7 +27,9 @@ RUN npm install -g pnpm@9
 COPY --from=builder /app /app
 
 ENV NODE_ENV=production
-ENV PORT=3001
-EXPOSE 3001
+
+# PORT is intentionally NOT hardcoded here.
+# Cloud Run injects its own PORT env variable at runtime (default: 8080).
+# The server reads process.env.PORT and binds to it dynamically.
 
 CMD ["pnpm", "--filter", "@demolition-labs/server", "start"]
