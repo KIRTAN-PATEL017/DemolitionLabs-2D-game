@@ -18,14 +18,7 @@
  */
 
 import "dotenv/config";
-import * as Sentry from "@sentry/node";
 import promClient from "prom-client";
-
-// Initialize Sentry
-Sentry.init({
-  dsn: process.env["SENTRY_DSN"] || "",
-  tracesSampleRate: 1.0,
-});
 
 // Initialize Prometheus metrics collection
 promClient.collectDefaultMetrics();
