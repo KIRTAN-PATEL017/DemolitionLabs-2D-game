@@ -160,21 +160,23 @@ app.ws<SocketData>("/room/:roomId", {
 import { initKafka } from "./kafka.js";
 
 // ---------------------------------------------------------------------------
-// Listen
+// Listen — start immediately so Cloud Run health checks pass right away
 // ---------------------------------------------------------------------------
 
-initKafka().then(() => {
-  app.listen(HOST, PORT, (token) => {
-    if (token) {
-      console.log(`[Server] DemolitionLabs game server listening on ws://${HOST}:${PORT}`);
-      console.log(`[Server] Health check: http://${HOST}:${PORT}/health`);
-    } else {
-      console.error(`[Server] Failed to bind to port ${PORT}`);
-      process.exit(1);
-    }
-  });
-}).catch(err => {
-  console.error("[Server] Failed to initialize Kafka", err);
+app.listen(HOST, PORT, (token) => {
+  if (token) {
+    console.log(`[Server] DemolitionLabs game server listening on ws://${HOST}:${PORT}`);
+    console.log(`[Server] Health check: http://${HOST}:${PORT}/health`);
+
+    // Connect to Kafka in the background after the server is already up
+    initKafka()
+      .then(() => console.log("[Server] Kafka producer ready"))
+      .catch(err => console.error("[Server] Kafka connection failed (will retry on publish):", err));
+
+  } else {
+    console.error(`[Server] Failed to bind to port ${PORT}`);
+    process.exit(1);
+  }
 });
 
 export { app };
