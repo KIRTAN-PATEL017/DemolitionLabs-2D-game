@@ -76,8 +76,16 @@ export class GameClient {
     this._roomId = roomId;
 
     // In dev, Vite proxies /room/:id → ws://localhost:3001/room/:id
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${location.host}/room/${encodeURIComponent(roomId)}`;
+    // In prod, use VITE_WS_URL from env if available
+    const serverUrl = import.meta.env.VITE_WS_URL;
+    let url: string;
+    
+    if (serverUrl) {
+      url = `${serverUrl}/room/${encodeURIComponent(roomId)}`;
+    } else {
+      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+      url = `${protocol}//${location.host}/room/${encodeURIComponent(roomId)}`;
+    }
 
     this.ws = new WebSocket(url);
 
