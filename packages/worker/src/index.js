@@ -8,6 +8,8 @@ import http from "http";
 promClient.collectDefaultMetrics();
 
 // Start a simple HTTP server to expose /metrics
+// Start a simple HTTP server to expose /metrics and a health check for Cloud Run
+const PORT = process.env.PORT || 3002;
 const metricsServer = http.createServer(async (req, res) => {
   if (req.url === "/metrics") {
     try {
@@ -17,13 +19,17 @@ const metricsServer = http.createServer(async (req, res) => {
       res.statusCode = 500;
       res.end("Error generating metrics");
     }
+  } else if (req.url === "/" || req.url === "/health") {
+    // Health check endpoint for Cloud Run startup probe
+    res.statusCode = 200;
+    res.end("OK");
   } else {
     res.statusCode = 404;
     res.end("Not found");
   }
 });
-metricsServer.listen(3002, () => {
-  console.log("[Worker] Metrics server listening on http://localhost:3002/metrics");
+metricsServer.listen(PORT, () => {
+  console.log(`[Worker] HTTP server listening on port ${PORT}`);
 });
 
 // 1. Initialize S3 (MinIO)
