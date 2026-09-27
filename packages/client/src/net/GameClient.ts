@@ -77,7 +77,7 @@ export class GameClient {
 
     // In dev, Vite proxies /room/:id → ws://localhost:3001/room/:id
     // In prod, use VITE_WS_URL from env if available
-    const serverUrl = import.meta.env.VITE_WS_URL;
+    const serverUrl = import.meta.env["VITE_WS_URL"];
     let url: string;
     
     if (serverUrl) {
