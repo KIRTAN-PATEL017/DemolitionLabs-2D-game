@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN pnpm --filter @demolition-labs/engine build
 RUN pnpm --filter @demolition-labs/server build
 
 # Production image
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ COPY --from=builder /app /app
 ENV NODE_ENV=production
 
 # PORT is intentionally NOT hardcoded here.
-# Cloud Run injects its own PORT env variable at runtime (default: 8080).
+# Cloud Run injects its own PORT env variable at runtime.
 # The server reads process.env.PORT and binds to it dynamically.
 
 CMD ["pnpm", "--filter", "@demolition-labs/server", "start"]
