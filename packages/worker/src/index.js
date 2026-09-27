@@ -32,15 +32,15 @@ metricsServer.listen(PORT, () => {
   console.log(`[Worker] HTTP server listening on port ${PORT}`);
 });
 
-// 1. Initialize S3 (MinIO)
+// 1. Initialize S3 (MinIO or GCS S3-compatibility)
 const s3 = new S3Client({
   endpoint: process.env.MINIO_ENDPOINT || "http://localhost:9000",
-  region: "us-east-1",
+  region: process.env.AWS_REGION || "us-east-1",
   credentials: {
-    accessKeyId: "minioadmin",
-    secretAccessKey: "minioadmin",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "minioadmin",
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "minioadmin",
   },
-  forcePathStyle: true, // required for MinIO
+  forcePathStyle: true, // required for MinIO, harmless for GCS
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET_NAME || "demolition-replays";
