@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'demolition-server'
+    static_configs:
+      # host.docker.internal allows Prometheus (in Docker) to talk to your Node server (on your host machine)
+      - targets: ['host.docker.internal:3001']
+      
+  - job_name: 'demolition-worker'
+    static_configs:
+      - targets: ['host.docker.internal:3002']

@@ -8,7 +8,13 @@ import { BombRenderer } from "../renderer/BombRenderer.js";
 import { PowerupRenderer } from "../renderer/PowerupRenderer.js";
 import { ExplosionRenderer } from "../renderer/ExplosionRenderer.js";
 import { Interpolator } from "../prediction/Interpolator.js";
-import type { MatchLog } from "../../../server/src/EventLogger.js";
+// MatchLog definition inline to avoid cross-package imports
+interface MatchLog {
+  matchId: string;
+  seed: number;
+  playerOrder: string[];
+  ticks: { tick: number; inputs: [string, GameInput][] }[];
+}
 
 export class ReplayScene extends Phaser.Scene {
   private engine!: GameEngine;
@@ -80,7 +86,7 @@ export class ReplayScene extends Phaser.Scene {
     this.interpolator = new Interpolator();
     
     this.engine = new GameEngine({
-      roomId: this.log.roomId,
+      roomId: this.log.matchId,
       seed: this.log.seed,
       mapWidth: 13,
       mapHeight: 11,
@@ -94,12 +100,12 @@ export class ReplayScene extends Phaser.Scene {
     
     this.engine.startMatch();
 
-    this.gridRenderer = new GridRenderer(this, this.engine.state.grid, 13, 11);
+    this.gridRenderer = new GridRenderer(this, (this.engine as any).state.grid, 13, 11);
     this.playerRenderer = new PlayerRenderer(this);
     this.bombRenderer = new BombRenderer(this);
     this.powerupRenderer = new PowerupRenderer(this);
     this.explosionRenderer = new ExplosionRenderer(this);
-    this.playerRenderer.syncPlayers(Array.from(this.engine.state.players.values()), "");
+    this.playerRenderer.syncPlayers(Array.from((this.engine as any).state.players.values()), "");
 
     this.isPlaying = true;
     this.playbackTick = 0;
@@ -117,7 +123,7 @@ export class ReplayScene extends Phaser.Scene {
 
         if (this.engine.isFinished()) {
           this.isPlaying = false;
-          this.statusText.setText(`Replay Finished. Winner: ${this.engine.state.winnerId ?? 'Draw'}`);
+          this.statusText.setText(`Replay Finished. Winner: ${(this.engine as any).state.winnerId ?? 'Draw'}`);
           return;
         }
 
@@ -147,7 +153,7 @@ export class ReplayScene extends Phaser.Scene {
   }
 
   private _processDelta(delta: GameStateDelta): void {
-    const state = this.engine.state;
+    const state = (this.engine as any).state;
     
     this.gridRenderer.applyChanges(delta.cellChanges);
     
@@ -165,7 +171,7 @@ export class ReplayScene extends Phaser.Scene {
   }
 
   private _renderFrame(deltaMs: number): void {
-    const state = this.engine.state;
+    const state = (this.engine as any).state;
     
     this.playerRenderer.syncPlayers(Array.from(state.players.values()), "");
     for (const player of state.players.values()) {
