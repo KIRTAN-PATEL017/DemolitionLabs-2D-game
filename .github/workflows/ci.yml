@@ -31,11 +31,11 @@ jobs:
     - name: Install dependencies
       run: pnpm install
 
-    - name: Run Linter & Type Check
-      run: pnpm lint
-
     - name: Build Packages
       run: pnpm build
+
+    - name: Run Linter & Type Check
+      run: pnpm lint
 
     - name: Run Tests
       run: pnpm test
