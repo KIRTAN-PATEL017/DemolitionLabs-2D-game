@@ -1,0 +1,33 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@9
+
+# Copy the entire monorepo
+COPY . .
+
+# Install all dependencies (required for monorepo linking)
+RUN pnpm install --frozen-lockfile
+
+# Build the engine and the server
+RUN pnpm --filter @demolition-labs/engine build
+RUN pnpm --filter @demolition-labs/server build
+
+# Production image
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+# We still need pnpm to run the workspace script
+RUN npm install -g pnpm@9
+
+# Copy everything from builder
+COPY --from=builder /app /app
+
+ENV NODE_ENV=production
+ENV PORT=3001
+EXPOSE 3001
+
+CMD ["pnpm", "--filter", "@demolition-labs/server", "start"]
