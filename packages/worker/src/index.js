@@ -1,15 +1,8 @@
 import "dotenv/config";
 import { Kafka } from "kafkajs";
 import { S3Client, PutObjectCommand, CreateBucketCommand, PutBucketPolicyCommand } from "@aws-sdk/client-s3";
-import * as Sentry from "@sentry/node";
 import promClient from "prom-client";
 import http from "http";
-
-// Initialize Sentry
-Sentry.init({
-  dsn: process.env.SENTRY_DSN || "",
-  tracesSampleRate: 1.0,
-});
 
 // Initialize Prometheus metrics collection
 promClient.collectDefaultMetrics();
@@ -35,7 +28,7 @@ metricsServer.listen(3002, () => {
 
 // 1. Initialize S3 (MinIO)
 const s3 = new S3Client({
-  endpoint: "http://localhost:9000",
+  endpoint: process.env.MINIO_ENDPOINT || "http://localhost:9000",
   region: "us-east-1",
   credentials: {
     accessKeyId: "minioadmin",
@@ -44,7 +37,7 @@ const s3 = new S3Client({
   forcePathStyle: true, // required for MinIO
 });
 
-const BUCKET_NAME = "demolition-replays";
+const BUCKET_NAME = process.env.S3_BUCKET_NAME || "demolition-replays";
 
 async function ensureBucketExists() {
   try {
@@ -84,7 +77,7 @@ async function ensureBucketExists() {
 // 2. Initialize Kafka Consumer
 const kafka = new Kafka({
   clientId: "demolition-worker",
-  brokers: ["localhost:9092"],
+  brokers: (process.env.KAFKA_BROKERS || "localhost:9092").split(","),
 });
 
 const consumer = kafka.consumer({ groupId: "replay-persistence-group" });
@@ -130,7 +123,6 @@ async function run() {
         console.log(`[S3] Successfully uploaded: s3://${BUCKET_NAME}/${filename}`);
       } catch (err) {
         console.error(`[S3] Failed to upload ${filename}`, err);
-        Sentry.captureException(err);
       }
     },
   });
@@ -138,5 +130,4 @@ async function run() {
 
 run().catch((err) => {
   console.error(err);
-  Sentry.captureException(err);
 });

@@ -46,8 +46,11 @@ export class ReplayScene extends Phaser.Scene {
     this.statusText.setText("Loading Replay...");
 
     try {
-      // Fetch the log via the Vite proxy to bypass CORS
-      const res = await fetch(`/demolition-replays/${this.matchId}.json`);
+      // Fetch the log via the Vite proxy to bypass CORS, or from env var in prod
+      const replayUrl = import.meta.env.VITE_REPLAY_URL 
+        ? `${import.meta.env.VITE_REPLAY_URL}/${this.matchId}.json`
+        : `/demolition-replays/${this.matchId}.json`;
+      const res = await fetch(replayUrl);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       
       this.log = await res.json() as MatchLog;
