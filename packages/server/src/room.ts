@@ -199,7 +199,7 @@ export class Room {
 
     // 1. Drain queued inputs and feed into engine
     const inputs = this.inputHandler.drainInputs(this.playerOrder);
-    if (this.logger) this.logger.logTick(this.engine.state.tick, inputs);
+    if (this.logger) this.logger.logTick((this.engine as any).state.tick, inputs);
 
     for (const [playerId, input] of inputs) {
       this.engine.processInput(playerId, input);

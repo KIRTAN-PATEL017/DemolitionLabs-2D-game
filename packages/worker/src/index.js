@@ -1,5 +1,37 @@
+import "dotenv/config";
 import { Kafka } from "kafkajs";
 import { S3Client, PutObjectCommand, CreateBucketCommand, PutBucketPolicyCommand } from "@aws-sdk/client-s3";
+import * as Sentry from "@sentry/node";
+import promClient from "prom-client";
+import http from "http";
+
+// Initialize Sentry
+Sentry.init({
+  dsn: process.env.SENTRY_DSN || "",
+  tracesSampleRate: 1.0,
+});
+
+// Initialize Prometheus metrics collection
+promClient.collectDefaultMetrics();
+
+// Start a simple HTTP server to expose /metrics
+const metricsServer = http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    try {
+      res.setHeader("Content-Type", promClient.register.contentType);
+      res.end(await promClient.register.metrics());
+    } catch (err) {
+      res.statusCode = 500;
+      res.end("Error generating metrics");
+    }
+  } else {
+    res.statusCode = 404;
+    res.end("Not found");
+  }
+});
+metricsServer.listen(3002, () => {
+  console.log("[Worker] Metrics server listening on http://localhost:3002/metrics");
+});
 
 // 1. Initialize S3 (MinIO)
 const s3 = new S3Client({
@@ -98,9 +130,13 @@ async function run() {
         console.log(`[S3] Successfully uploaded: s3://${BUCKET_NAME}/${filename}`);
       } catch (err) {
         console.error(`[S3] Failed to upload ${filename}`, err);
+        Sentry.captureException(err);
       }
     },
   });
 }
 
-run().catch(console.error);
+run().catch((err) => {
+  console.error(err);
+  Sentry.captureException(err);
+});

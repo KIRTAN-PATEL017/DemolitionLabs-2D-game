@@ -178,7 +178,7 @@ export class GameScene extends Phaser.Scene {
     // 3. Entity sync: Bombs
     this.activeBombs.forEach((b) => b.fuseTicksLeft--);
     this.activeBombs = this.activeBombs.filter(
-      (b) => !delta.explodedBombs.find((pos) => pos.x === b.pos.x && pos.y === b.pos.y)
+      (b) => !delta.explodedBombs.find((exp) => exp.origin.x === b.pos.x && exp.origin.y === b.pos.y)
     );
     // Push a copy of new bombs since we will mutate fuseTicksLeft
     for (const nb of delta.newBombs) {

@@ -17,6 +17,30 @@
  *   HOST   (default '0.0.0.0')
  */
 
+import "dotenv/config";
+import * as Sentry from "@sentry/node";
+import promClient from "prom-client";
+
+// Initialize Sentry
+Sentry.init({
+  dsn: process.env["SENTRY_DSN"] || "",
+  tracesSampleRate: 1.0,
+});
+
+// Initialize Prometheus metrics collection
+promClient.collectDefaultMetrics();
+
+// --- Custom Business Metrics ---
+export const wsMessagesCounter = new promClient.Counter({
+  name: "demolition_ws_messages_total",
+  help: "Total number of WebSocket messages received from clients",
+});
+
+export const activeConnectionsGauge = new promClient.Gauge({
+  name: "demolition_active_connections",
+  help: "Current number of active WebSocket connections",
+});
+
 // uWebSockets.js ships a prebuilt native binary — imported as CommonJS
 import uWS from "uWebSockets.js";
 import { RoomRegistry } from "./room-registry.js";
@@ -52,6 +76,26 @@ app.get("/health", (res) => {
 });
 
 // ---------------------------------------------------------------------------
+// HTTP — /metrics
+// ---------------------------------------------------------------------------
+
+app.get("/metrics", async (res, req) => {
+  res.onAborted(() => {
+    (res as any).aborted = true;
+  });
+  try {
+    const metrics = await promClient.register.metrics();
+    if (!(res as any).aborted) {
+      res.writeHeader("Content-Type", promClient.register.contentType).end(metrics);
+    }
+  } catch (err) {
+    if (!(res as any).aborted) {
+      res.writeStatus("500 Internal Server Error").end("Error generating metrics");
+    }
+  }
+});
+
+// ---------------------------------------------------------------------------
 // WebSocket — /room/:roomId
 // ---------------------------------------------------------------------------
 
@@ -76,6 +120,7 @@ app.ws<SocketData>("/room/:roomId", {
   },
 
   open(ws) {
+    activeConnectionsGauge.inc();
     const { playerId, roomId } = ws.getUserData();
     console.log(`[Server] ${playerId} joining room '${roomId}'`);
 
@@ -98,6 +143,7 @@ app.ws<SocketData>("/room/:roomId", {
   },
 
   message(ws, messageBuffer) {
+    wsMessagesCounter.inc();
     const { playerId, roomId } = ws.getUserData();
     const room = registry.getOrCreate(roomId);
     const raw = Buffer.from(messageBuffer).toString("utf-8");
@@ -109,6 +155,7 @@ app.ws<SocketData>("/room/:roomId", {
   },
 
   close(ws) {
+    activeConnectionsGauge.dec();
     const { playerId, roomId } = ws.getUserData();
     console.log(`[Server] ${playerId} left room '${roomId}'`);
     const room = registry.getOrCreate(roomId);
