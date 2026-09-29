@@ -90,6 +90,11 @@ The project uses environment variables to configure URLs and credentials for sea
 ```env
 KAFKA_BROKERS=localhost:9092
 ```
+For Cloud Run, set `KAFKA_BROKERS` to the broker address reachable from the
+service (not `localhost`). If Kafka is on a Compute Engine VM, configure
+networking and firewall rules so Cloud Run can reach the VM on the broker port.
+The server keeps its health endpoint available while Kafka is unavailable and
+retries its producer connection with capped exponential backoff.
 
 **2. `packages/worker/.env`**
 ```env
